@@ -16,6 +16,19 @@ services:
       timeout: 5s
       retries: 5
 
+  mongo:
+    image: mongo:7
+    container_name: fcg-mongo-payments
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata_payments:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   payments-api:
     build:
       context: .
@@ -29,8 +42,12 @@ services:
       RabbitMQ__VirtualHost: /
       RabbitMQ__Username: guest
       RabbitMQ__Password: guest
+      Mongo__ConnectionString: "mongodb://mongo:27017"
+      Mongo__Database: "fcg_payments"
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      mongo:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -38,3 +55,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+
+volumes:
+  mongodata_payments:
