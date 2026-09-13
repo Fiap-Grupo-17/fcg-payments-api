@@ -30,10 +30,21 @@ fcg-payments-api/
 │   ├── configmap.yaml
 │   ├── secret.yaml
 │   ├── deployment.yaml
-│   └── service.yaml
+│   ├── service.yaml
+│   └── mongo.yaml
 ├── Dockerfile
 └── docker-compose.yml
 ```
+
+## NoSQL (MongoDB)
+
+O serviço utiliza **MongoDB** (banco `fcg_payments`) para persistência de dados de
+pagamento e controle de idempotência no processamento de eventos (`OrderPlacedEvent`).
+
+| Variável                       | Padrão                          | Descrição                          |
+|---------------------------------|----------------------------------|-------------------------------------|
+| `Mongo__ConnectionString`      | `mongodb://mongo:27017`         | String de conexão MongoDB           |
+| `Mongo__Database`              | `fcg_payments`                  | Banco de dados usado pelo serviço   |
 
 ## Variáveis de Ambiente
 
@@ -43,15 +54,20 @@ fcg-payments-api/
 | `RabbitMQ__VirtualHost`   | `/`         | VirtualHost do RabbitMQ           |
 | `RabbitMQ__Username`      | `guest`     | Usuário do RabbitMQ               |
 | `RabbitMQ__Password`      | `guest`     | Senha do RabbitMQ *(via Secret)*  |
+| `Mongo__ConnectionString` | `mongodb://mongo:27017` | String de conexão MongoDB  |
+| `Mongo__Database`         | `fcg_payments` | Banco de dados MongoDB           |
 
 ## Executar localmente
 
 ```bash
-# Subir RabbitMQ + PaymentsAPI
+# Sobe RabbitMQ + MongoDB + PaymentsAPI
 docker compose up -d
 
 # Health check
 curl http://localhost:8083/health
+
+# Validar o MongoDB
+mongosh mongodb://localhost:27017/fcg_payments --eval "db.getCollectionNames()"
 ```
 
 ## Exemplo de log
@@ -68,6 +84,7 @@ curl http://localhost:8083/health
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/secret.yaml
 kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/mongo.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 ```

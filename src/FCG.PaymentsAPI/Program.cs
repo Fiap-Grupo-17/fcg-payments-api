@@ -1,4 +1,7 @@
+using FCG.PaymentsAPI.Comum.Interfaces;
 using FCG.PaymentsAPI.Consumers;
+using FCG.PaymentsAPI.Mensageria;
+using FCG.PaymentsAPI.Persistencia.Mongo;
 using MassTransit;
 using Serilog;
 
@@ -13,9 +16,21 @@ builder.Host.UseSerilog((ctx, lc) => lc
     .Enrich.FromLogContext()
     .WriteTo.Console());
 
+// ── Idempotência de consumers (MongoDB) ─────────────────────────
+var mongoOptions = new MongoOptions();
+builder.Configuration.GetSection(MongoOptions.SectionName).Bind(mongoOptions);
+builder.Services.AddSingleton(mongoOptions);
+builder.Services.AddSingleton<MongoContext>();
+builder.Services.AddSingleton<IProcessedEventStore, MongoProcessedEventStore>();
+builder.Services.AddHostedService<MongoIndexInitializer>();
+
 // ── MassTransit + RabbitMQ ──────────────────────────────────────
 builder.Services.AddMassTransit(x =>
 {
+    // Prefixo de fila por serviço: evita colisão de nome de fila entre serviços,
+    // garantindo fan-out (uma fila por serviço) em vez de competing consumers.
+    x.SetEndpointNameFormatter(new DefaultEndpointNameFormatter("Payments", false));
+
     x.AddConsumer<OrderPlacedConsumer>();
 
     x.UsingRabbitMq((ctx, cfg) =>
@@ -28,6 +43,8 @@ builder.Services.AddMassTransit(x =>
                 h.Username(builder.Configuration["RabbitMQ:Username"] ?? "guest");
                 h.Password(builder.Configuration["RabbitMQ:Password"] ?? "guest");
             });
+
+        cfg.UseConsumeFilter(typeof(IdempotentConsumeFilter<>), ctx);
 
         cfg.ConfigureEndpoints(ctx);
     });

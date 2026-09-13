@@ -8,3 +8,5 @@ data:
   RabbitMQ__Host: "rabbitmq-service"
   RabbitMQ__VirtualHost: "/"
   RabbitMQ__Username: "guest"
+  Mongo__ConnectionString: "mongodb://mongo-service:27017"
+  Mongo__Database: "fcg_payments"
