@@ -53,13 +53,17 @@ pagamento e controle de idempotência no processamento de eventos (`OrderPlacedE
 | `RabbitMQ__Host`          | `localhost` | Host do RabbitMQ                  |
 | `RabbitMQ__VirtualHost`   | `/`         | VirtualHost do RabbitMQ           |
 | `RabbitMQ__Username`      | `guest`     | Usuário do RabbitMQ               |
-| `RabbitMQ__Password`      | `guest`     | Senha do RabbitMQ *(via Secret)*  |
+| `RabbitMQ__Password`      | — (via .env / Secret) | Senha do RabbitMQ, sem valor padrão |
 | `Mongo__ConnectionString` | `mongodb://mongo:27017` | String de conexão MongoDB  |
 | `Mongo__Database`         | `fcg_payments` | Banco de dados MongoDB           |
 
 ## Executar localmente
 
 ```bash
+# PowerShell (Linux/macOS: cp .env.example .env)
+Copy-Item .env.example .env
+# edite o .env e defina RABBITMQ_PASSWORD
+
 # Sobe RabbitMQ + MongoDB + PaymentsAPI
 docker compose up -d
 
@@ -80,7 +84,12 @@ mongosh mongodb://localhost:27017/fcg_payments --eval "db.getCollectionNames()"
 
 ## Deploy no Kubernetes
 
+Crie o Secret a partir do modelo (o `secret.yaml` é ignorado pelo Git) e aplique os arquivos um a um:
+
 ```bash
+Copy-Item k8s/secret.example.yaml k8s/secret.yaml
+# troque o <placeholder> por um valor seu
+
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/secret.yaml
 kubectl apply -f k8s/configmap.yaml
@@ -89,6 +98,7 @@ kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 ```
 
+> Não use `kubectl apply -f k8s/`: isso aplicaria também o `secret.example.yaml`, com placeholders.
 ## Dependências
 
 - **FCG.Contracts** 1.0.0 (NuGet) — contratos compartilhados de eventos
